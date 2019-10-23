@@ -24,6 +24,8 @@
 # TODO: Add dependency on Adafruit Python GPIO and use its platform detect
 # functions.
 
+# Added import subprocess to check lshw linux command down below
+import subprocess
 import platform
 import re
 
@@ -53,6 +55,11 @@ def platform_detect():
         return BEAGLEBONE_BLACK
     elif plat.lower().find('armv7l-with-arch') > -1:
         return BEAGLEBONE_BLACK
+    # Unknown platform when reading DHT22 or AM2302 sensor on Ubuntu core IoT and Raspberry Pi 3 B+
+    # Linux-4.15.0-1048-raspi2-aarch64-with-Ubuntu-18.04-bionic
+    # added two lines down below to fix the message above
+    elif plat.lower().find('raspi2-aarch64-with-ubuntu') > -1:
+        return RASPBERRY_PI
 
     # Couldn't figure out the platform, just return unknown.
     return UNKNOWN
@@ -94,9 +101,32 @@ def pi_version():
     # Match a line like 'Hardware   : BCM2709'
     match = re.search('^Hardware\s+:\s+(\w+)$', cpuinfo,
                       flags=re.MULTILINE | re.IGNORECASE)
+    #if not match:
+    #    # Couldn't find the hardware, assume it isn't a pi.
+    #    return None
     if not match:
-        # Couldn't find the hardware, assume it isn't a pi.
-        return None
+        # maybe we are running Ubuntu core IoT on Raspberry Pi 3 B+
+        # Unknown platform when reading DHT22 or AM2302 sensor on Ubuntu core IoT and Raspberry Pi 3 B+
+        # Linux-4.15.0-1048-raspi2-aarch64-with-Ubuntu-18.04-bionic
+        # eighteen lines down below to fix the message above
+        try:
+            out = subprocess.Popen(['lshw'],
+                stdout = subprocess.PIPE,
+                stderr = subprocess.STDOUT)
+            stdout, stderr = out.communicate()
+            if stderr is None:
+                if "Raspberry Pi 3 Model B Plus" in str(stdout):
+                    # Pi 3b+, but returning 1 to avoid the message:
+                    # cannot import name 'Raspberry_Pi_2_Driver'
+                    return 1
+                else:
+                    # Something else, not a pi.
+                    return None
+            # Something else, not a pi.
+            return None
+        except Exception as e:
+            # Something else, not a pi.
+            return None
     if match.group(1) == 'BCM2708':
         # Pi 1
         return 1
