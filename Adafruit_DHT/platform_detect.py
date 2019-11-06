@@ -119,9 +119,8 @@ def pi_version():
                     # Pi 3b+, but returning 1 to avoid the message:
                     # cannot import name 'Raspberry_Pi_2_Driver'
                     return 1
-                else:
-                    # Something else, not a pi.
-                    return None
+                # Something else, not a pi.
+                return None
             # Something else, not a pi.
             return None
         except Exception as e:
